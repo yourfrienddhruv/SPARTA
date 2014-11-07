@@ -1,0 +1,519 @@
+<html ng-app="reportingApp">
+<head>
+<meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+<meta content="utf-8" http-equiv="encoding">
+<title>I/O Testing Report</title>
+<link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.2.0/css/bootstrap.min.css">
+<style>
+    /* Move down content because we have a fixed navbar that is 50px tall */
+    body {
+        padding-top: 30px;
+    }
+    .main {
+        padding: 20px;
+    }
+</style>
+<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.2.20/angular.min.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/0.10.0/ui-bootstrap-tpls.min.js"></script>
+
+<script src="http://cmaurer.github.io/angularjs-nvd3-directives/lib/d3/d3.min.js"></script>
+<script src="http://cmaurer.github.io/angularjs-nvd3-directives/lib/nvd3/nv.d3.min.js"></script>
+<link rel="stylesheet" href="http://cmaurer.github.io/angularjs-nvd3-directives/lib/nvd3/nv.d3.css">
+<script src="http://cmaurer.github.io/angularjs-nvd3-directives/lib/angularjs-nvd3-directives/dist/angularjs-nvd3-directives.js"></script>
+<script src="http://cmaurer.github.io/angularjs-nvd3-directives/javascripts/scale.fix.js"></script>
+<script>
+    var reportingApp = angular.module("reportingApp", ['ui.bootstrap', 'nvd3ChartDirectives']);
+    reportingApp.controller("ReportCtrl", ['$scope', function ($scope) {
+         $scope.report = {
+            project: {name: "checking-\"api-demo\"-app"},
+            environment: { values: ["Execution Date/Time: 2014-11-05-21:43:46", "Execution Environment: dev","TestMachine: priyank-ThinkPad-T410", "OS: 3.13.0-40-generic Ubuntu x86_64 GNU/Linux","Results: results/archieve/run_20141105-214346" ]},
+            signOffSuccessThreshold: 80,
+            signOffCommentsNegative: "Build Rejected. Build is not stable and Passed Test cases count is less than Accptable number/percentage",
+            signOffCommentsPositive: "Build Accepted",
+            features: [
+                {
+                    name: "ASN.1 formatted data Ingestion",
+                    description: "Each record is ASN1 record as per specification XX.V2",
+                    tags: ["Regression"],
+                    scenarios: [
+                        {
+                            name: "Ingest ASN.1 files from FTP pull",
+                            description: "FPT",
+                            tags: ["Smoke"],
+                            status: "Failed",
+                            automated: true,
+                            cases : [
+                              { name: "Process files from valid SFTP URL",
+                                status: "Failed"
+                              },
+                              { name: "Process files ",
+                                status: "Passed"
+                              }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    name: "Process Ingested Records",
+                    description: "Record data are client propritory format based on RFC21.32.4",
+                    scenarios: [{
+                          name: "All record values must be stored",
+                          tags: ["Smoke", "Core"],
+                          status: "Passed",
+                          automated: true,
+                          cases : [
+                            { name: "Individual Record",status: "Passed"},
+                            { name: "File Batch Record",status: "Passed"}
+                          ]
+                        },
+                        {
+                            name: "Indexed columns Must be Indexed",
+                            tags: ["Smoke", "Core"],
+                            status: "Passed",
+                            automated: true,
+                            cases : [
+                              { name: "Primary Key",status: "Passed"},
+                              { name: "Configured Index Key",status: "Failed"},
+                            ]
+                        },
+                        {
+                            name: "Invalid data of Indexed columns must be ignored",
+                            tags: ["Smoke", "Core"],
+                            status: "Skipped",
+                            automated: false,
+                            cases : [
+                              { name: "Primary Key",status: "Skipped"},
+                              { name: "Configured Index Key",status: "Passed"},
+                            ]
+                        },
+                        {
+                            name: "Correpted data records must be handled",
+                            tags: ["Smoke", "Core"],
+                            status: "Passed",
+                            automated: false,
+                            cases : [
+                              { name: "File Curruption",status: "Failed"},
+                              { name: "Record Curruption",status: "Passed"},
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+
+        //========================================== featureCoverage ==========================================
+        $scope.totalScenarios = 0;
+        $scope.chartDataInit4featureCoverage = function () {
+            $scope.report.features.forEach(function (f) {
+                $scope.totalScenarios += f.scenarios ? f.scenarios.length : 0;
+            });
+            var totalAutomated = 0;
+            $scope.report.features.forEach(function (f) {
+                        if (f.scenarios) {
+                            f.scenarios.forEach(function (s) {
+                                totalAutomated += s.automated ? 1 : 0;
+                            })
+                        }
+                    }
+            );
+            var automated = totalAutomated;
+            var notAutomated = $scope.totalScenarios - totalAutomated;
+
+            return [{x: 'Not yet automated', y: notAutomated, color: '#ED9C28'}, {
+                x: 'Automated',
+                y: automated,
+                color: '#5CB85C'
+            }];
+        };
+        $scope.chartData4featureCoverage = $scope.chartDataInit4featureCoverage();
+
+        $scope.xFunction = function () {
+            return function (d) {
+                return d.x;
+            };
+        };
+        $scope.yFunction = function () {
+            return function (d) {
+                return d.y;
+            };
+        };
+        $scope.colorFunction = function () {
+            return function (d) {
+                return d.data.color;
+            };
+        };
+
+        //========================================== featureSummary ==========================================
+        $scope.buildSuccess = 0;
+        $scope.chartDataInit4featureSummary = function () {
+            var Failed = 0;
+            var Passed = 0;
+            var Skipped = 0;
+            $scope.report.features.forEach(function (f) {
+                        if (f.scenarios) {
+                            f.scenarios.forEach(function (s) {
+                                if (s.status && 'FAILED' === s.status.toUpperCase()) {
+                                    Failed++;
+                                } else if (s.status && 'PASSED' === s.status.toUpperCase()) {
+                                    Passed++;
+                                } else {
+                                    Skipped++;
+                                }
+                            })
+                        }
+                    }
+            );
+            if(Failed ==0 && Passed ==0){
+                return [];
+            }else{
+                $scope.buildSuccess = (Passed / (Passed + Failed))*100;
+                return [{x: 'Failed', y: Failed, color: '#D2322D'}, {x: 'Passed', y: Passed, color: '#5CB85C'}
+                , {x: 'Skipped', y: Skipped ,color:'#ED9C28'}
+                ];
+            }
+        };
+        $scope.chartData4featureSummary = $scope.chartDataInit4featureSummary();
+
+        //========================================== caseSummary ==========================================
+        $scope.totalCases = 0;
+        $scope.chartDataInit4CaseSummary = function () {
+            var Failed = 0;
+            var Passed = 0;
+            var Skipped = 0;
+            $scope.report.features.forEach(function (f) {
+                        if (f.scenarios) {
+                            f.scenarios.forEach(function (s) {
+                                if (s.cases) {
+                                    s.cases.forEach(function (c) {
+                                        $scope.totalCases++;
+                                        if (c.status && 'FAILED' === c.status.toUpperCase()) {
+                                            Failed++;
+                                        } else if (c.status && 'PASSED' === c.status.toUpperCase()) {
+                                            Passed++;
+                                        } else {
+                                            Skipped++;
+                                        }
+                                    })
+                                }
+                            })
+                        }
+                    }
+            );
+            if(Failed ==0 && Passed ==0){
+                return [];
+            }else{
+                $scope.buildSuccess = (Passed / (Passed + Failed))*100;
+                return [{x: 'Failed', y: Failed, color: '#D2322D'}, {x: 'Passed', y: Passed, color: '#5CB85C'}
+                , {x: 'Skipped', y: Skipped ,color:'#ED9C28'}
+                ];
+            }
+        };
+        $scope.chartData4CaseSummary = $scope.chartDataInit4CaseSummary();
+
+        //========================================== featureTable ==========================================
+        $scope.featureRowColors = {Failed: 'danger', Passed: 'success', Skipped: 'warning'};
+
+        $scope.featureSummaryTable = function () {
+            var data = [];
+            $scope.report.features.forEach(function (f) {
+                        var Failed = 0;
+                        var Passed = 0;
+                        var Skipped = 0;
+                        var Total = 0;
+                        var scenarioSummary = [] ;
+                        if (f.scenarios) {
+                            f.scenarios.forEach(function (s) {
+                                Total++;
+                                if (s.status && 'FAILED' === s.status.toUpperCase()) {
+                                    Failed++;
+                                } else if (s.status && 'PASSED' === s.status.toUpperCase()) {
+                                    Passed++;
+                                } else {
+                                    Skipped++;
+                                }
+
+                                var cFailed = 0;
+                                var cPassed = 0;
+                                var cSkipped = 0;
+                                var cTotal = 0;
+                                if (s.cases) {
+                                    s.cases.forEach(function (c) {
+                                        cTotal++;
+                                        if (c.status && 'FAILED' === c.status.toUpperCase()) {
+                                            cFailed++;
+                                        } else if (c.status && 'PASSED' === c.status.toUpperCase()) {
+                                            cPassed++;
+                                        } else {
+                                            cSkipped++;
+                                        }
+                                    })
+                                }
+                                scenarioSummary.push({name: s.name, description: s.description, Failed: cFailed, Passed: cPassed, Skipped: cSkipped, Total: cTotal})
+                            })
+                        }
+                        data.push({name: f.name, description: f.description,
+                           Failed: Failed, Passed: Passed, Skipped: Skipped, Total: Total,
+                                  scenario : scenarioSummary})
+                    }
+            );
+            //console.log(data);
+            return data;
+        };
+        $scope.featureSummaryTableData = $scope.featureSummaryTable();
+        //Placeholder variables
+        $scope.selectedFeature;
+    }])
+    ;
+</script>
+</head>
+
+<body ng-controller="ReportCtrl">
+<div>
+    <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse"
+                        data-target=".navbar-collapse">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="#">I/O Testing Report for {{ report.project.name }} Project</a>
+            </div>
+            <div class="navbar-collapse collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li><a href="#">Overview</a></li>
+                </ul>
+                <form class="navbar-form navbar-right">
+                    <input class="form-control" placeholder="Search By Tags..." type="text">
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!--div class="col-sm-3 col-md-2 sidebar">
+                <ul class="nav nav-sidebar">
+                    <li class="active"><a href="#">Overview</a></li>
+                    <li ng-repeat="feature in report.features">
+                        <a href="#" ng-click="report.selectedFeature=feature.name">{{feature.name}}</a>
+                    </li>
+                </ul>
+            </div>
+            <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main"-->
+            <div class="main">
+                <h2 class="page-header">Automation execution Report of {{ report.project.name }} Project</h2>
+
+                <div class="row">
+                    <div class="col-sm-3"></div>
+                    <div class="col-sm-6">
+                        <alert type="danger" class="alert-danger" ng-show="report.signOffCommentsNegative
+                                && buildSuccess < report.signOffSuccessThreshold"
+                               close="report.signOffCommentsNegative=''">
+                            <span class="glyphicon glyphicon-warning-sign"></span> {{report.signOffCommentsNegative}}
+                        </alert>
+                        <alert type="success" ng-show="report.signOffCommentsPositive
+                            && buildSuccess >= report.signOffSuccessThreshold"
+                               close="report.signOffCommentsPositive=''">
+                            <span class="glyphicon glyphicon-ok"></span> {{report.signOffCommentsPositive}}
+                        </alert>
+                    </div>
+                    <div class="col-sm-3"></div>
+                </div>
+                <div class="row" style="height: 300px" align="center">
+                    <div class="col-sm-3">
+                        <h4>Automation Coverage</h4>
+                        <span class="text-muted">Total system features : {{report.features.length}} </span>
+                        <nvd3-pie-chart
+                                data="chartData4featureCoverage"
+                                x="xFunction()"
+                                y="yFunction()"
+                                tooltips="true"
+                                showLabels="true"
+                                labelType="percent"
+                                color="colorFunction()">
+                            <svg></svg>
+                        </nvd3-pie-chart>
+                    </div>
+                    <div class="col-sm-3">
+                        <h4>Test Summary</h4>
+                        <span class="text-muted">Total scenarios: {{totalScenarios}}</span>
+                        <nvd3-pie-chart
+                                data="chartData4featureSummary"
+                                x="xFunction()"
+                                y="yFunction()"
+                                tooltips="true"
+                                showLabels="true"
+                                labelType="percent"
+                                noData="All tests skipped"
+                                color="colorFunction()">
+                            <svg></svg>
+                        </nvd3-pie-chart>
+                    </div>
+                    <div class="col-sm-3">
+                        <h4>Case Summary</h4>
+                        <span class="text-muted">Total Cases: {{totalCases}}</span>
+                        <nvd3-pie-chart
+                                data="chartData4CaseSummary"
+                                x="xFunction()"
+                                y="yFunction()"
+                                tooltips="true"
+                                showLabels="true"
+                                labelType="percent"
+                                noData="All tests skipped"
+                                color="colorFunction()">
+                            <svg></svg>
+                        </nvd3-pie-chart>
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                <tr>
+                                   <h6><th>Test Environment Details</th></h6>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr ng-repeat="v in report.environment.values">
+                                    <td>{{v}}</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <h3 class="sub-header">&nbsp;</h3>
+
+                <h3 class="sub-header">Execution Statistics</h3>
+
+                <tabset>
+                    <tab>
+                        <tab-heading>
+                            Summary
+                        </tab-heading>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Feature</th>
+                                    <th class="success">Passed</th>
+                                    <th class="danger">Failed</th>
+                                    <th class="warning">Skipped</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr ng-repeat="feature in featureSummaryTableData">
+                                    <td>{{$index+1}}</td>
+                                    <td><div tooltip="{{feature.description}}">{{feature.name}}</div></td>
+                                    <td class="success">{{feature.Passed}}</td>
+                                    <td class="danger">{{feature.Failed}}</td>
+                                    <td class="warning">{{feature.Skipped}}</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </tab>
+                    <tab>
+                        <tab-heading>
+                            Detail Execution status
+                        </tab-heading>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Feature / Scenario</th>
+                                    <th>Tags</th>
+                                    <th>Status</th>
+                                    <th>Detail Status</th>
+                                </tr>
+                                </thead>
+                                <tbody ng-repeat="feature in report.features">
+                                  <tr ng-repeat-start="scenario in feature.scenarios"
+                                    ng-class="featureRowColors[scenario.status]">
+                                      <td><h6>{{$parent.$index+1}} / {{$index +1 }}</h6></td>
+                                      <td><h6>{{feature.name}} / <b> {{scenario.name}} </b></h6></td>
+                                      <td> <span ng-repeat="tag in feature.tags" class="label label-default">{{tag}}</span>
+                                          <span ng-repeat="tag in scenario.tags"
+                                                class="label label-default">{{tag}}</span></td>
+                                      <td>{{scenario.status}}</td>
+                                      <td><div class="row-fluid">
+                                          <span class="col-sm-6">
+                                            <progress animate="true" max="featureSummaryTableData[$parent.$index].scenario[$index].Total">
+                                              <bar                  value="featureSummaryTableData[$parent.$parent.$index].scenario[$parent.$index].Passed"
+                                                   type="success"> <span>{{featureSummaryTableData[$parent.$parent.$parent.$index].scenario[$parent.$parent.$index].Passed}}</span>
+                                              </bar>
+                                              <bar                 value="featureSummaryTableData[$parent.$parent.$index].scenario[$parent.$index].Failed"
+                                                   type="danger"> <span>{{featureSummaryTableData[$parent.$parent.$parent.$index].scenario[$parent.$parent.$index].Failed}}</span>
+                                              </bar>
+                                              <bar                  value="featureSummaryTableData[$parent.$parent.$index].scenario[$parent.$index].Skipped"
+                                                   type="warning"> <span>{{featureSummaryTableData[$parent.$parent.$parent.$index].scenario[$parent.$parent.$index].Skipped}}</span>
+                                              </bar>
+                                             </progress>
+                                          </span>
+                                          <span class="col-sm-3">
+                                            <button type="button" class="btn btn-primary btn-sm" ng-click="showCaseDetails=!showCaseDetails">
+                                                 Total {{ featureSummaryTableData[$parent.$index].scenario[$index].Total }} Cases
+                                                 <i class="glyphicon" ng-class="{'glyphicon-chevron-down': showCaseDetails, 'glyphicon-chevron-right': !showCaseDetails}"></i>
+                                            </button>
+                                          </span>
+                                      </div></td>
+                                    </tr>
+                                    <tr ng-repeat-end="" ng-show="showCaseDetails">
+                                    <td></td>
+                                    <td><b>Individual Test Result</b><i class="pull-right glyphicon glyphicon-chevron-right"></i></td>
+                                    <td colspan="4">
+                                      <div ng-repeat="case in scenario.cases"
+                                      ng-class="{'text-warning': case.status=='Skipped', 'text-success': case.status=='Passed','text-danger': case.status=='Failed'}">
+                                        <span class="glyphicon "
+                                          ng-class="{'glyphicon-pause': case.status=='Skipped', 'glyphicon-ok': case.status=='Passed','glyphicon-remove': case.status=='Failed'}">
+                                          </span> {{case.name}}
+                                      </div>
+                                    </td>
+                                    <td></td>
+                                    <td></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </tab>
+                    <tab>
+                        <tab-heading>
+                            <i class="glyphicon glyphicon-bell"></i> Failed Scenarios!
+                        </tab-heading>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Feature / Scenario</th>
+                                    <th>Tags</th>
+                                    <th>Status</th>
+                                </tr>
+                                </thead>
+                                <tbody ng-repeat="feature in report.features">
+                                <tr ng-repeat="scenario in feature.scenarios" ng-show="'Failed'==scenario.status"
+                                    ng-class="featureRowColors[scenario.status]">
+                                    <td><h6>{{$parent.$index+1}} / {{$index +1 }}</h6></td>
+                                    <td><h6>{{feature.name}} / <b> {{scenario.name}} </b></h6></td>
+                                    <td><span ng-repeat="tag in feature.tags" class="label label-default">{{tag}}</span>
+                                        <span ng-repeat="tag in scenario.tags"
+                                              class="label label-default">{{tag}}</span></td>
+                                    <td>{{scenario.status}}</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </tab>
+                </tabset>
+            </div>
+
+        </div>
+    </div>
+</div>
+</body>
+</html>
