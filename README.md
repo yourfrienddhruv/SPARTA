@@ -17,6 +17,15 @@ WHAT's Different & Restriction
 ==============================
 -   Strictly Self contained single HTML file. No more messing around with folder's and zip.
 
+
+Does it look sexy?
+=============
+![Sample](https://raw.githubusercontent.com/yourfrienddhruv/SPARTA/master/screenShots/SPARTA_Sample_Report.png)
+
+![Detailed](https://raw.githubusercontent.com/yourfrienddhruv/SPARTA/master/screenShots/SPARTA_Detailed_ExecutionStatus.png)
+
+![Failed](https://raw.githubusercontent.com/yourfrienddhruv/SPARTA/master/screenShots/SPARTA_FaileScenarios.png)
+
 HOW TO
 ======
 -   Run/Execute all of your test cases with your existing tools (Shell script is also fine :-) )
