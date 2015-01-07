@@ -5,9 +5,8 @@
     project_name : RDHI
     environment : ST
 
+- include: setup.yml
+
 - include: feature1.yml
 
 - include: feature2.yml
-
-
-

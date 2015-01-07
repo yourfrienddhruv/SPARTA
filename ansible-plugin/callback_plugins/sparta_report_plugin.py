@@ -596,7 +596,7 @@ def record_step(play, task, res, host, status):
         env_values.append("Execution Environment: "+local_vars["environment"])
         env_values.append("TestMachine: "+socket.gethostname())
     if type(res) == type(dict()):
-        if "cmd" in res.keys():
+        if "cmd" in res.keys() and local_vars['scenario']:
             feature = find_feature({"name" : local_vars['feature'], "scenarios" : []})
             scenario = find_scenario(feature["scenarios"], {"name" : local_vars['scenario'], "cases" : []})
             scenario["cases"].append({"name": task, "status": status})

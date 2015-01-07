@@ -1,0 +1,36 @@
+---
+
+- hosts: all
+  vars:
+    feature : ""
+    scenario : ""
+
+  tasks:
+    - name: Ensure Java is avaliable on controller machine
+      command: java -version
+
+    - name: Get local dir
+      local_action: shell pwd
+      register: unzippath
+
+    - name: Debug result
+      debug: var=unzippath
+
+    - name: Setting up server framework
+      local_action: shell unzip testEngine/spring-boot-cli-1.2.0.RELEASE-bin.zip creates=spring-1.2.0.RELEASE/bin/spring
+
+    - name: Setting up server framework
+      local_action: shell echo 'Starting server'
+      notify:
+      -  stopTestEngine
+      -  startTestEngine
+
+  handlers:
+    - name: stopTestEngine
+      local_action: shell echo "TODO: stop if already running"
+
+    - name: startTestEngine
+      local_action: shell spring-1.2.0.RELEASE/bin/spring run testEngine/testEngine.groovy & free_form=true chdir={{unzippath.stdout}}
+      async: 1000
+      poll: 5
+      register: task_sleeper

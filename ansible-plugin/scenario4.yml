@@ -8,4 +8,7 @@
     - name: Confirmation mail sent
       command: echo 'Confirmation mail sent'
 
+    - name: Simulating long running task
+      wait_for: port=8080 delay=10
+
     - shell: anything
