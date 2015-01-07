@@ -1,0 +1,13 @@
+---
+
+- hosts: all
+  vars:
+    project_name : RDHI
+    environment : ST
+
+- include: feature1.yml
+
+- include: feature2.yml
+
+
+

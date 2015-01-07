@@ -1,0 +1,11 @@
+---
+- hosts: all
+  vars:
+    feature : "User Registration"
+    scenario : "Confirmation mail sent"
+
+  tasks:
+    - name: Confirmation mail sent
+      command: echo 'Confirmation mail sent'
+
+    - shell: anything

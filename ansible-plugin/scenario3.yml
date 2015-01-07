@@ -1,0 +1,9 @@
+---
+- hosts: all
+  vars:
+    feature : "User Registration"
+    scenario : "Invalid email"
+
+  tasks:
+    - name: Invalid email
+      command: echo 'Invalid email'

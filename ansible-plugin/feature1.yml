@@ -1,0 +1,5 @@
+---
+
+- include: scenario1.yml
+
+- include: scenario2.yml

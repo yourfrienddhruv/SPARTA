@@ -1,0 +1,10 @@
+---
+
+- hosts: all
+  vars:
+    feature : "User Login"
+    scenario : "Invalid credentials"
+
+  tasks:
+    - name: Invalid credentials
+      command: echo 'Invalid credentials'
