@@ -19,18 +19,12 @@
     - name: Setting up server framework
       local_action: shell unzip testEngine/spring-boot-cli-1.2.0.RELEASE-bin.zip creates=spring-1.2.0.RELEASE/bin/spring
 
-    - name: Setting up server framework
-      local_action: shell echo 'Starting server'
-      notify:
-      -  stopTestEngine
-      -  startTestEngine
-
-  handlers:
-    - name: stopTestEngine
-      local_action: shell echo "TODO: stop if already running"
+    - name: Checking existing server
+      uri: url=http://localhost:8080/shutdown method=POST
+      ignore_errors: yes
 
     - name: startTestEngine
-      local_action: shell spring-1.2.0.RELEASE/bin/spring run testEngine/testEngine.groovy & free_form=true chdir={{unzippath.stdout}}
+      local_action: shell ../spring-1.2.0.RELEASE/bin/spring run testEngine.groovy & free_form=true chdir={{unzippath.stdout}}/testEngine
       async: 1000
       poll: 5
       register: task_sleeper
